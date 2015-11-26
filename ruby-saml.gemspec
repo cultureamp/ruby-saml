@@ -1,9 +1,9 @@
 $LOAD_PATH.push File.expand_path('../lib', __FILE__)
-require 'onelogin/ruby-saml/version'
+require 'onelogin/ruby-saml-f/version'
 
 Gem::Specification.new do |s|
-  s.name = 'ruby-saml'
-  s.version = OneLogin::RubySaml::VERSION
+  s.name = 'ruby-saml-f'
+  s.version = OneLogin::RubySamlF::VERSION
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["OneLogin LLC"]
@@ -15,8 +15,8 @@ Gem::Specification.new do |s|
      "README.md"
   ]
   s.files = `git ls-files`.split("\n")
-  s.homepage = %q{http://github.com/onelogin/ruby-saml}
-  s.rubyforge_project = %q{http://www.rubygems.org/gems/ruby-saml}
+  s.homepage = %q{http://github.com/onelogin/ruby-saml-f}
+  s.rubyforge_project = %q{http://www.rubygems.org/gems/ruby-saml-f}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.7}
