@@ -411,9 +411,9 @@ The settings related to sign are stored in the `security` attribute of the setti
 ```ruby
   settings.security[:authn_requests_signed]   = true     # Enable or not signature on AuthNRequest
   settings.security[:logout_requests_signed]  = true     # Enable or not signature on Logout Request
-  settings.security[:logout_responses_signed] = true     # Enable or not 
+  settings.security[:logout_responses_signed] = true     # Enable or not
   signature on Logout Response
-  settings.security[:want_assertions_signed]  = true     # Enable or not 
+  settings.security[:want_assertions_signed]  = true     # Enable or not
   the requirement of signed assertion
   settings.security[:metadata_signed]         = true     # Enable or not signature on Metadata
 
@@ -426,7 +426,7 @@ The settings related to sign are stored in the `security` attribute of the setti
 ```
 
 Notice that the RelayState parameter is used when creating the Signature on the HTTP-Redirect Binding.
-Remember to provide it to the Signature builder if you are sending a `GET RelayState` parameter or the 
+Remember to provide it to the Signature builder if you are sending a `GET RelayState` parameter or the
 signature validation process will fail at the Identity Provider.
 
 The Service Provider will sign the request/responses with its private key.
@@ -601,9 +601,7 @@ Make sure to keep the value as comfortably small as possible to keep security ri
 
 To request attributes from the IdP the SP needs to provide an attribute service within it's metadata and reference the index in the assertion.
 
-```ruby
-settings = OneLogin::RubySaml::Settings.new
-
+```
 settings.attributes_index = 5
 settings.attribute_consuming_service.configure do
   service_name "Service"
@@ -614,3 +612,19 @@ end
 ```
 
 The `attribute_value` option additionally accepts an array of possible values.
+
+# Culture Amp Ruby Saml
+
+## Overview
+
+Supports multiple X509 certificates in metadata.
+Stores fingerprints and certs in an array.
+Validate response against array of fingerprints/certs.
+
+The primary differences between this and the official gem are
+
+- `IdpMetadataParser` will parse ALL X509 certificates in the metadata
+- it stores fingerprints in `idp_cert_fingerprint_multi`
+- it stores certificates in `idp_cert_multi`
+- `idp_cert_multi` and `idp_cert_fingerprint_multi` are arrays
+- it calls `is_valid_multi_cert?` to validates against multiple fingerprints or certs
