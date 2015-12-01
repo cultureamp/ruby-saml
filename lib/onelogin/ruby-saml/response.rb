@@ -79,11 +79,11 @@ module OneLogin
         validate
       end
 
-      # Validates the SAML Response using idp_certs and idp_cert_fingerprints
+      # Validates the SAML Response using idp_cert_multi and idp_cert_fingerprint_multi
       # @return [Boolean] TRUE if the SAML Response is valid
       #
-      def is_valids?
-        validates
+      def is_valid_multi_cert?
+        validate_multi_cert
       end
 
       # @return [String] the NameID provided by the SAML response from the IdP.
@@ -295,10 +295,10 @@ module OneLogin
       end
 
       # Does the same thing as the original validate, except uses the idp_certs and idp_cert_fingerprints
-      def validates
-        validate_response_states &&
+      def validate_multi_cert
+        validate_response_state_multi_cert &&
         common_validation &&
-        validate_signatures
+        validate_signature_multi_cert
       end
 
       def common_validation
@@ -363,12 +363,12 @@ module OneLogin
       # also check that the setting and the IdP certs were also provided
       # @return [Boolean] True if the required info is found, false otherwise
       #
-      def validate_response_states
+      def validate_response_state_multi_cert
         return append_error("Blank response") if response.nil? || response.empty?
 
         return append_error("No settings on response") if settings.nil?
 
-        if settings.idp_cert_fingerprints.nil? && settings.idp_certs.nil?
+        if settings.idp_cert_fingerprint_multi.nil? && settings.idp_cert_multi.nil?
           return append_error("No fingerprints or certificates on settings")
         end
 
@@ -629,15 +629,15 @@ module OneLogin
         true
       end
 
-      # Validates the Signature using idp_certs and idp_cert_fingerprints
+      # Validates the Signature using idp_cert_multi and idp_cert_fingerprint_multi
       # @return [Boolean] True if not contains a Signature or if the Signature is valid, otherwise False if soft=True
       # @raise [ValidationError] if soft == false and validation fails
       #
-      def validate_signatures
-        fingerprints = settings.get_fingerprints
-        idp_certs = settings.get_idp_certs
+      def validate_signature_multi_cert
+        fingerprint_multi = settings.get_fingerprint_multi
+        idp_cert_multi = settings.get_idp_cert_multi
 
-        if fingerprints.empty? && !validate_fingerprint(fingerprints, idp_certs)
+        if fingerprint_multi.empty? && !validate_fingerprint(fingerprint_multi, idp_cert_multi)
           error_msg = "Invalid Signature on SAML Response"
           return append_error(error_msg)
         end
@@ -645,7 +645,7 @@ module OneLogin
         true
       end
 
-      def validate_fingerprint(fingerprints, idp_certs)
+      def validate_fingerprint(fingerprint_multi, idp_cert_multi)
         response_signed = REXML::XPath.first(
           document,
           "/p:Response[@ID=$id]",
@@ -654,7 +654,7 @@ module OneLogin
         )
         doc = (response_signed || decrypted_document.nil?) ? document : decrypted_document
 
-        fingerprints.zip(idp_certs).any? do |fingerprint, idp_cert|
+        fingerprint_multi.zip(idp_cert_multi).any? do |fingerprint, idp_cert|
           opts = {}
           opts[:fingerprint_alg] = settings.idp_cert_fingerprint_algorithm
           opts[:cert] = idp_cert
