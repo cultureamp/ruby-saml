@@ -82,8 +82,8 @@ module OneLogin
       # Validates the SAML Response using idp_cert_multi and idp_cert_fingerprint_multi
       # @return [Boolean] TRUE if the SAML Response is valid
       #
-      def is_valid_multi_cert?
-        validate_multi_cert
+      def is_valid_multicert?
+        validate_multicert
       end
 
       # @return [String] the NameID provided by the SAML response from the IdP.
@@ -295,7 +295,7 @@ module OneLogin
       end
 
       # Does the same thing as the original validate, except uses the idp_certs and idp_cert_fingerprints
-      def validate_multi_cert
+      def validate_multicert
         validate_response_state_multi_cert &&
         common_validation &&
         validate_signature_multi_cert
