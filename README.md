@@ -6,8 +6,6 @@ Supports multiple X509 certificates in metadata.
 Stores fingerprints and certs in an array.
 Validate response against array of fingerprints/certs.
 
-## Overview
-
 The primary differences between this and the official gem are
 
 - `IdpMetadataParser` will parse ALL X509 certificates in the metadata

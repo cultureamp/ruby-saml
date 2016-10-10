@@ -5,6 +5,7 @@ require 'nokogiri'
 require 'rexml/document'
 require 'rexml/xpath'
 require 'thread'
+require "onelogin/ruby-saml/error_handling"
 
 # Only supports SAML 2.0
 module OneLogin
@@ -20,10 +21,12 @@ module OneLogin
 
       BASE64_FORMAT = %r(\A[A-Za-z0-9+/]{4}*[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=?\Z)
 
+      @@mutex = Mutex.new
+
       # @return [Nokogiri::XML::Schema] Gets the schema object of the SAML 2.0 Protocol schema
       #
       def self.schema
-        Mutex.new.synchronize do
+        @@mutex.synchronize do
           Dir.chdir(File.expand_path("../../../schemas", __FILE__)) do
             ::Nokogiri::XML::Schema(File.read("saml-schema-protocol-2.0.xsd"))
           end
@@ -69,21 +72,13 @@ module OneLogin
           end
         rescue Exception => error
           return false if soft
-          validation_error("XML load failed: #{error.message}")
+          raise ValidationError.new("XML load failed: #{error.message}")
         end
 
         SamlMessage.schema.validate(xml).map do |error|
           return false if soft
-          validation_error("#{error.message}\n\n#{xml.to_s}")
+          raise ValidationError.new("#{error.message}\n\n#{xml.to_s}")
         end
-      end
-
-      # Raise a ValidationError with the provided message
-      # @param message [String] Message of the exception
-      # @raise [ValidationError]
-      #
-      def validation_error(message)
-        raise ValidationError.new(message)
       end
 
       private
