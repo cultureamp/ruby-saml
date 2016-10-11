@@ -1,5 +1,39 @@
 # RubySaml Changelog
 
+### 1.3.1 (July 10, 2016)
+* Fix response_test.rb of gem 1.3.0
+* Add reference to Security Guidelines
+* Update License
+* [#334](https://github.com/onelogin/ruby-saml/pull/334) Keep API backward-compatibility on IdpMetadataParser fingerprint method. 
+
+### 1.3.0 (June 24, 2016)
+* [Security Fix](https://github.com/onelogin/ruby-saml/commit/a571f52171e6bfd87db59822d1d9e8c38fb3b995) Add extra validations to prevent Signature wrapping attacks
+* Fix XMLSecurity SHA256 and SHA512 uris
+* [#326](https://github.com/onelogin/ruby-saml/pull/326) Fix Destination validation
+
+### 1.2.0 (April 29, 2016)
+* [#269](https://github.com/onelogin/ruby-saml/pull/269) Refactor error handling; allow collect error messages when soft=true (normal validation stop after find first error)
+* [#289](https://github.com/onelogin/ruby-saml/pull/289) Remove uuid gem in favor of SecureRandom
+* [#297](https://github.com/onelogin/ruby-saml/pull/297) Implement EncryptedKey RetrievalMethod support
+* [#298](https://github.com/onelogin/ruby-saml/pull/298) IDP metadata parsing improved: binding parsing, fingerprint_algorithm support)
+* [#299](https://github.com/onelogin/ruby-saml/pull/299) Make 'signing' at KeyDescriptor optional
+* [#308](https://github.com/onelogin/ruby-saml/pull/308) Support name_id_format on SAMLResponse
+* [#315](https://github.com/onelogin/ruby-saml/pull/315) Support for canonicalization with comments
+* [#316](https://github.com/onelogin/ruby-saml/pull/316) Fix Misspelling of transation_id to transaction_id
+* [#321](https://github.com/onelogin/ruby-saml/pull/321) Support Attribute Names on IDPSSODescriptor parser
+* Changes on empty URI of Signature reference management
+* [#320](https://github.com/onelogin/ruby-saml/pull/320) Dont mutate document to fix lack of reference URI 
+* [#306](https://github.com/onelogin/ruby-saml/pull/306) Support WantAssertionsSigned
+
+### 1.1.2 (February 15, 2016)
+* Improve signature validation. Add tests.
+ [#302](https://github.com/onelogin/ruby-saml/pull/302) Add Destination validation.
+* [#292](https://github.com/onelogin/ruby-saml/pull/292) Improve the error message when validating the audience.
+* [#287](https://github.com/onelogin/ruby-saml/pull/287) Keep the extracted certificate when parsing IdP metadata.
+
+### 1.1.1 (November 10, 2015)
+* [#275](https://github.com/onelogin/ruby-saml/pull/275) Fix a bug on signature validations that invalidates valid SAML messages.
+
 ### 1.1.0 (October 27, 2015)
 * [#273](https://github.com/onelogin/ruby-saml/pull/273) Support SAMLResponse without ds:x509certificate
 * [#270](https://github.com/onelogin/ruby-saml/pull/270) Allow SAML elements to come from any namespace (at decryption process)

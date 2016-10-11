@@ -29,7 +29,7 @@ require "openssl"
 require 'nokogiri'
 require "digest/sha1"
 require "digest/sha2"
-require "onelogin/ruby-saml/validation_error"
+require "onelogin/ruby-saml/error_handling"
 
 module XMLSecurity
 
@@ -48,9 +48,14 @@ module XMLSecurity
       end
 
       case algorithm
-        when "http://www.w3.org/TR/2001/REC-xml-c14n-20010315" then Nokogiri::XML::XML_C14N_1_0
-        when "http://www.w3.org/2006/12/xml-c14n11"            then Nokogiri::XML::XML_C14N_1_1
-        else                                                        Nokogiri::XML::XML_C14N_EXCLUSIVE_1_0
+        when "http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
+             "http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"
+          Nokogiri::XML::XML_C14N_1_0
+        when "http://www.w3.org/2006/12/xml-c14n11",
+             "http://www.w3.org/2006/12/xml-c14n11#WithComments"
+          Nokogiri::XML::XML_C14N_1_1
+        else
+          Nokogiri::XML::XML_C14N_EXCLUSIVE_1_0
       end
     end
 
@@ -74,14 +79,14 @@ module XMLSecurity
   end
 
   class Document < BaseDocument
-    RSA_SHA1            = "http://www.w3.org/2000/09/xmldsig#rsa-sha1"
-    RSA_SHA256            = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
-    RSA_SHA384            = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"
-    RSA_SHA512            = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"
+    RSA_SHA1        = "http://www.w3.org/2000/09/xmldsig#rsa-sha1"
+    RSA_SHA256      = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+    RSA_SHA384      = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"
+    RSA_SHA512      = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"
     SHA1            = "http://www.w3.org/2000/09/xmldsig#sha1"
-    SHA256          = "http://www.w3.org/2001/04/xmldsig-more#sha256"
+    SHA256          = 'http://www.w3.org/2001/04/xmlenc#sha256'
     SHA384          = "http://www.w3.org/2001/04/xmldsig-more#sha384"
-    SHA512          = "http://www.w3.org/2001/04/xmldsig-more#sha512"
+    SHA512          = 'http://www.w3.org/2001/04/xmlenc#sha512'
     ENVELOPED_SIG   = "http://www.w3.org/2000/09/xmldsig#enveloped-signature"
     INC_PREFIX_LIST = "#default samlp saml ds xs xsi md"
 
@@ -109,8 +114,8 @@ module XMLSecurity
       #<Object />
     #</Signature>
     def sign_document(private_key, certificate, signature_method = RSA_SHA1, digest_method = SHA1)
-      noko = Nokogiri.parse(self.to_s) do |options|
-        options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
+      noko = Nokogiri::XML(self.to_s) do |config|
+        config.options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
       end
 
       signature_element = REXML::Element.new("ds:Signature").add_namespace('ds', DSIG)
@@ -133,8 +138,8 @@ module XMLSecurity
       reference_element.add_element("ds:DigestValue").text = compute_digest(canon_doc, algorithm(digest_method_element))
 
       # add SignatureValue
-      noko_sig_element = Nokogiri.parse(signature_element.to_s) do |options|
-        options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
+      noko_sig_element = Nokogiri::XML(signature_element.to_s) do |config|
+        config.options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
       end
 
       noko_signed_info_element = noko_sig_element.at_xpath('//ds:Signature/ds:SignedInfo', 'ds' => DSIG)
@@ -179,9 +184,9 @@ module XMLSecurity
   end
 
   class SignedDocument < BaseDocument
+    include OneLogin::RubySaml::ErrorHandling
 
     attr_accessor :signed_element_id
-    attr_accessor :errors
 
     def initialize(response, errors = [])
       super(response)
@@ -200,10 +205,14 @@ module XMLSecurity
         { "ds"=>DSIG }
       )
 
-      if cert_element        
+      if cert_element
         base64_cert = cert_element.text
         cert_text = Base64.decode64(base64_cert)
-        cert = OpenSSL::X509::Certificate.new(cert_text)
+        begin
+          cert = OpenSSL::X509::Certificate.new(cert_text)
+        rescue OpenSSL::X509::CertificateError => e
+          return append_error("Certificate Error", soft)
+        end
 
         if options[:fingerprint_alg]
           fingerprint_alg = XMLSecurity::BaseDocument.new.algorithm(options[:fingerprint_alg]).new
@@ -215,7 +224,7 @@ module XMLSecurity
         # check cert matches registered idp cert
         if fingerprint != idp_cert_fingerprint.gsub(/[^a-zA-Z0-9]/,"").downcase
           @errors << "Fingerprint mismatch"
-          return soft ? false : (raise OneLogin::RubySaml::ValidationError.new("Fingerprint mismatch"))
+          return append_error("Fingerprint mismatch", soft)
         end
       else
         if options[:cert]
@@ -224,8 +233,8 @@ module XMLSecurity
           if soft
             return false
           else
-            raise OneLogin::RubySaml::ValidationError.new("Certificate element missing in response (ds:X509Certificate) and not cert provided at settings")
-          end          
+            return append_error("Certificate element missing in response (ds:X509Certificate) and not cert provided at settings", soft)
+          end
         end
       end
       validate_signature(base64_cert, soft)
@@ -233,8 +242,8 @@ module XMLSecurity
 
     def validate_signature(base64_cert, soft = true)
 
-      document = Nokogiri.parse(self.to_s) do |options|
-        options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
+      document = Nokogiri::XML(self.to_s) do |config|
+        config.options = XMLSecurity::BaseDocument::NOKOGIRI_OPTIONS
       end
 
       # create a rexml document
@@ -273,12 +282,6 @@ module XMLSecurity
       noko_sig_element = document.at_xpath('//ds:Signature', 'ds' => DSIG)
       noko_signed_info_element = noko_sig_element.at_xpath('./ds:SignedInfo', 'ds' => DSIG)
 
-      # Handle when no URI
-      noko_signed_info_reference_element_uri_attr = noko_signed_info_element.at_xpath('./ds:Reference', 'ds' => DSIG).attributes["URI"]
-      if (noko_signed_info_reference_element_uri_attr.value.empty?)
-        noko_signed_info_reference_element_uri_attr.value = "##{document.root.attribute('ID')}"
-      end
-
       canon_string = noko_signed_info_element.canonicalize(canon_algorithm)
       noko_sig_element.remove
 
@@ -289,8 +292,8 @@ module XMLSecurity
       ref = REXML::XPath.first(sig_element, "//ds:Reference", {"ds"=>DSIG})
       uri = ref.attributes.get_attribute("URI").value
 
-      hashed_element = uri.empty? ? document : document.at_xpath("//*[@ID=$uri]", nil, { 'uri' => uri[1..-1] })
-      # hashed_element = document.at_xpath("//*[@ID=$uri]", nil, { 'uri' => uri[1..-1] })
+      hashed_element = document.at_xpath("//*[@ID=$id]", nil, { 'id' => extract_signed_element_id })
+      
       canon_algorithm = canon_algorithm REXML::XPath.first(
         ref,
         '//ds:CanonicalizationMethod',
@@ -313,7 +316,7 @@ module XMLSecurity
 
       unless digests_match?(hash, digest_value)
         @errors << "Digest mismatch"
-        return soft ? false : (raise OneLogin::RubySaml::ValidationError.new("Digest mismatch"))
+        return append_error("Digest mismatch", soft)
       end
 
       # get certificate object
@@ -322,8 +325,7 @@ module XMLSecurity
 
       # verify signature
       unless cert.public_key.verify(signature_algorithm.new, signature, canon_string)
-        @errors << "Key validation error"
-        return soft ? false : (raise OneLogin::RubySaml::ValidationError.new("Key validation error"))
+        return append_error("Key validation error", soft)
       end
 
       return true
@@ -344,8 +346,8 @@ module XMLSecurity
 
       return nil if reference_element.nil?
 
-      sei = reference_element.attribute("URI").value[1..-1] 
-      sei.nil? ? self.root.attribute("ID") : sei
+      sei = reference_element.attribute("URI").value[1..-1]
+      sei.nil? ? reference_element.parent.parent.parent.attribute("ID").value : sei
     end
 
     def extract_inclusive_namespaces

@@ -30,6 +30,7 @@ module OneLogin
       attr_accessor :idp_cert_fingerprint
       attr_accessor :idp_cert_fingerprint_multi
       attr_accessor :idp_cert_fingerprint_algorithm
+      attr_accessor :idp_attribute_names
       # SP Data
       attr_accessor :issuer
       attr_accessor :assertion_consumer_service_url
@@ -162,9 +163,9 @@ module OneLogin
       #
       def get_sp_key
         return nil if private_key.nil? || private_key.empty?
-        
-        formated_private_key = OneLogin::RubySaml::Utils.format_private_key(private_key)
-        OpenSSL::PKey::RSA.new(formated_private_key)
+
+        formatted_private_key = OneLogin::RubySaml::Utils.format_private_key(private_key)
+        OpenSSL::PKey::RSA.new(formatted_private_key)
       end
 
       private
@@ -180,6 +181,7 @@ module OneLogin
           :authn_requests_signed    => false,
           :logout_requests_signed   => false,
           :logout_responses_signed  => false,
+          :want_assertions_signed   => false,
           :metadata_signed          => false,
           :embed_sign               => false,
           :digest_method            => XMLSecurity::Document::SHA1,

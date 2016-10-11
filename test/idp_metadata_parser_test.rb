@@ -28,6 +28,44 @@ class IdpMetadataParserTest < Minitest::Test
       assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
       assert_equal "https://example.hello.com/access/saml/logout", settings.idp_slo_target_url
       assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified", settings.name_identifier_format
+      assert_equal ["AuthToken", "SSOStartPage"], settings.idp_attribute_names
+      assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
+    end
+
+    it "extract certificate from md:KeyDescriptor[@use='signing']" do
+      idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+      idp_metadata = read_response("idp_descriptor.xml")
+      settings = idp_metadata_parser.parse(idp_metadata)
+      assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
+    end
+
+    it "extract certificate from md:KeyDescriptor[@use='encryption']" do
+      idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+      idp_metadata = read_response("idp_descriptor.xml")
+      idp_metadata = idp_metadata.sub(/<md:KeyDescriptor use="signing">(.*?)<\/md:KeyDescriptor>/m, "")
+      settings = idp_metadata_parser.parse(idp_metadata)
+      assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
+    end
+
+    it "extract certificate from md:KeyDescriptor" do
+      idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+      idp_metadata = read_response("idp_descriptor.xml")
+      idp_metadata = idp_metadata.sub(/<md:KeyDescriptor use="signing">(.*?)<\/md:KeyDescriptor>/m, "")
+      idp_metadata = idp_metadata.sub('<md:KeyDescriptor use="encryption">', '<md:KeyDescriptor>')
+      settings = idp_metadata_parser.parse(idp_metadata)
+      assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
+    end
+
+    describe 'when xml contains multiple idp_certs' do
+      it 'extract all the fingerprints' do
+        idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+
+        settings = idp_metadata_parser.parse(idp_metadata_with_multiple_certs)
+
+        assert settings.idp_cert_fingerprint_multi.kind_of? Array
+        assert_equal "92:B8:8C:3D:D9:81:BF:1E:BC:B2:44:FC:FA:63:C0:07:70:6C:79:E0", settings.idp_cert_fingerprint_multi[0]
+        assert_equal "32:70:BF:55:97:00:4D:F3:39:A4:E6:22:24:73:1B:6B:D8:28:10:A6", settings.idp_cert_fingerprint_multi[1]
+      end
     end
 
     describe 'when xml contains multiple idp_certs' do
@@ -64,6 +102,7 @@ class IdpMetadataParserTest < Minitest::Test
       assert_equal "F1:3C:6B:80:90:5A:03:0E:6C:91:3E:5D:15:FA:DD:B0:16:45:48:72", settings.idp_cert_fingerprint
       assert_equal "https://example.hello.com/access/saml/logout", settings.idp_slo_target_url
       assert_equal "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified", settings.name_identifier_format
+      assert_equal ["AuthToken", "SSOStartPage"], settings.idp_attribute_names
       assert_equal OpenSSL::SSL::VERIFY_PEER, @http.verify_mode
     end
 

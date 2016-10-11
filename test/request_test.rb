@@ -152,6 +152,13 @@ class RequestTest < Minitest::Test
       assert_match /<saml:AuthnContextClassRef>secure\/name\/password\/uri<\/saml:AuthnContextClassRef>/, auth_doc.to_s
     end
 
+    it "create multiple saml:AuthnContextClassRef elements correctly" do
+      settings.authn_context = ['secure/name/password/uri', 'secure/email/password/uri']
+      auth_doc = OneLogin::RubySaml::Authrequest.new.create_authentication_xml_doc(settings)
+      assert_match /<saml:AuthnContextClassRef>secure\/name\/password\/uri<\/saml:AuthnContextClassRef>/, auth_doc.to_s
+      assert_match /<saml:AuthnContextClassRef>secure\/email\/password\/uri<\/saml:AuthnContextClassRef>/, auth_doc.to_s
+    end
+
     it "create the saml:AuthnContextClassRef with comparison exact" do
       settings.authn_context = 'secure/name/password/uri'
       auth_doc = OneLogin::RubySaml::Authrequest.new.create_authentication_xml_doc(settings)
@@ -199,7 +206,7 @@ class RequestTest < Minitest::Test
         request_xml = Base64.decode64(params["SAMLRequest"])
         assert_match %r[<ds:SignatureValue>([a-zA-Z0-9/+=]+)</ds:SignatureValue>], request_xml
         assert_match %r[<ds:SignatureMethod Algorithm='http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'/>], request_xml
-        assert_match %r[<ds:DigestMethod Algorithm='http://www.w3.org/2001/04/xmldsig-more#sha512'/>], request_xml
+        assert_match %r[<ds:DigestMethod Algorithm='http://www.w3.org/2001/04/xmlenc#sha512'/>], request_xml
       end
     end
 

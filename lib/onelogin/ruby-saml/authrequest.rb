@@ -1,8 +1,8 @@
-require "uuid"
 require "rexml/document"
 
 require "onelogin/ruby-saml/logging"
 require "onelogin/ruby-saml/saml_message"
+require "onelogin/ruby-saml/utils"
 
 # Only supports SAML 2.0
 module OneLogin
@@ -20,7 +20,7 @@ module OneLogin
       # Asigns an ID, a random uuid.
       #
       def initialize
-        @uuid = "_" + UUID.new.generate
+        @uuid = OneLogin::RubySaml::Utils.uuid
       end
 
       # Creates the AuthNRequest string.
@@ -136,8 +136,11 @@ module OneLogin
           }
 
           if settings.authn_context != nil
-            class_ref = requested_context.add_element "saml:AuthnContextClassRef"
-            class_ref.text = settings.authn_context
+            authn_contexts = settings.authn_context.is_a?(Array) ? settings.authn_context : [settings.authn_context]
+            authn_contexts.each do |authn_context|
+              class_ref = requested_context.add_element "saml:AuthnContextClassRef"
+              class_ref.text = authn_context
+            end
           end
           # add saml:AuthnContextDeclRef element
           if settings.authn_context_decl_ref != nil

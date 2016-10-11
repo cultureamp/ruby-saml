@@ -75,6 +75,20 @@ class MetadataTest < Minitest::Test
       assert validate_xml!(xml_text, "saml-schema-metadata-2.0.xsd")
     end
 
+    describe "WantAssertionsSigned" do
+      it "generates Service Provider Metadata with WantAssertionsSigned = false" do
+        settings.security[:want_assertions_signed] = false
+        assert_equal "false", spsso_descriptor.attribute("WantAssertionsSigned").value
+        assert validate_xml!(xml_text, "saml-schema-metadata-2.0.xsd")
+      end
+
+      it "generates Service Provider Metadata with WantAssertionsSigned = true" do
+        settings.security[:want_assertions_signed] = true
+        assert_equal "true", spsso_descriptor.attribute("WantAssertionsSigned").value
+        assert validate_xml!(xml_text, "saml-schema-metadata-2.0.xsd")
+      end
+    end
+
     describe "when auth requests are signed" do
       let(:key_descriptors) do
         REXML::XPath.match(
@@ -189,7 +203,7 @@ class MetadataTest < Minitest::Test
         it "creates a signed metadata with specified digest and signature methods" do
           assert_match %r[<ds:SignatureValue>([a-zA-Z0-9/+=]+)</ds:SignatureValue>]m, xml_text
           assert_match %r[<ds:SignatureMethod Algorithm='http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'/>], xml_text
-          assert_match %r[<ds:DigestMethod Algorithm='http://www.w3.org/2001/04/xmldsig-more#sha512'/>], xml_text
+          assert_match %r[<ds:DigestMethod Algorithm='http://www.w3.org/2001/04/xmlenc#sha512'/>], xml_text
 
           signed_metadata_2 = XMLSecurity::SignedDocument.new(xml_text)
 

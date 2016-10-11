@@ -1,7 +1,7 @@
 require "uri"
-require "uuid"
 
 require "onelogin/ruby-saml/logging"
+require "onelogin/ruby-saml/utils"
 
 # Only supports SAML 2.0
 module OneLogin
@@ -29,8 +29,7 @@ module OneLogin
         sp_sso = root.add_element "md:SPSSODescriptor", {
             "protocolSupportEnumeration" => "urn:oasis:names:tc:SAML:2.0:protocol",
             "AuthnRequestsSigned" => settings.security[:authn_requests_signed],
-            # However we would like assertions signed if idp_cert_fingerprint or idp_cert is set
-            "WantAssertionsSigned" => !!(settings.idp_cert_fingerprint || settings.idp_cert)
+            "WantAssertionsSigned" => settings.security[:want_assertions_signed],
         }
 
         # Add KeyDescriptor if messages will be signed / encrypted
@@ -50,7 +49,7 @@ module OneLogin
           xc2.text = cert_text
         end
 
-        root.attributes["ID"] = "_" + UUID.new.generate
+        root.attributes["ID"] = OneLogin::RubySaml::Utils.uuid
         if settings.issuer
           root.attributes["entityID"] = settings.issuer
         end
