@@ -78,7 +78,7 @@ module OneLogin
       def name_id
         @name_id ||=
           if name_id_node
-            name_id_node.text
+            name_id_node.texts.join
           end
       end
 
